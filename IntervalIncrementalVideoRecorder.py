@@ -11,10 +11,12 @@ class IntervalIncrementalVideoRecorder():
         self.logger = logger
 
         self.camera = PiCamera()
+        self.camera.rotation = 180
         self.lastRecordingStart = None
         self.recordingStopper = None
         self.status = "STANDBY"
         self.recordingsFileNames = []
+        self.lastRecordingDate = None
 
         self.recordingInterval = datetime.timedelta(seconds=config.video['stdTimelapseSeconds'])
         self.recordingPath = config.video['stdOutputFolder']
@@ -34,6 +36,24 @@ class IntervalIncrementalVideoRecorder():
             "_" + format(now.hour, "02") + format(now.minute, "02") + format(now.second, "02")
         return self.recordingPath + fileName + ".h264"
 
+    # prevent a memory overflow:
+    def resetRecordingsFileNamesIfApplies(self):
+        if self.shouldResetRecordedFileNamesList():
+            self.recordingsFileNames = []
+
+    def shouldResetRecordedFileNamesList(self):
+        lastRecording = self.lastRecordingDate
+        now = datetime.datetime.now()
+        
+        if lastRecording is None:
+            # recordings registry should already be empty
+            return False
+        
+        return not (lastRecording.year == now.year and lastRecording.month == now.month and lastRecording.day == now.day)
+
+    def updateLastRecordingNow(self):
+        self.lastRecordingDate = datetime.datetime.now()
+
     def startRecording(self):
         self.threadingLock.acquire()
         self.logger.debug("  attempting : startRecording             :: IntervalIncrementalVideoRecorder")
@@ -47,7 +67,9 @@ class IntervalIncrementalVideoRecorder():
             self.status = "RECORDING"
             
             if not config.system['mock']:
+                self.resetRecordingsFileNamesIfApplies()
                 self.recordingsFileNames.append(fileName)
+                self.updateLastRecordingNow()
                 self.camera.start_recording(fileName)
         else:
             self.logger.log("  --- REC* EXTENSION [" + str(datetime.datetime.now()) \
