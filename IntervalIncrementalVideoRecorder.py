@@ -3,6 +3,8 @@ import threading
 import time
 import datetime
 
+import config
+
 class IntervalIncrementalVideoRecorder():
     def __init__(self, threadingLock, logger):
         self.threadingLock = threadingLock
@@ -12,11 +14,10 @@ class IntervalIncrementalVideoRecorder():
         self.lastRecordingStart = None
         self.recordingStopper = None
         self.status = "STANDBY"
+        self.recordingsFileNames = []
 
-        # TODO configuration
-        self.recordingInterval = datetime.timedelta(seconds=20)
-        # TODO configuration
-        self.recordingPath = '/home/pi/'
+        self.recordingInterval = datetime.timedelta(seconds=config.video['stdTimelapseSeconds'])
+        self.recordingPath = config.video['stdOutputFolder']
         if not self.recordingPath.endswith("/"):
             self.recordingPath = self.recordingPath + "/"
 
@@ -44,8 +45,10 @@ class IntervalIncrementalVideoRecorder():
             self.logger.log("  --- REC* " + fileName + " [" + str(datetime.datetime.now()) + "] " \
                 + " :: startRecording :: IntervalIncrementalVideoRecorder")
             self.status = "RECORDING"
-            self.camera.start_preview()
-            self.camera.start_recording(fileName)
+            
+            if not config.system['mock']:
+                self.recordingsFileNames.append(fileName)
+                self.camera.start_recording(fileName)
         else:
             self.logger.log("  --- REC* EXTENSION [" + str(datetime.datetime.now()) \
                 + "]                                                    ---")
@@ -65,10 +68,16 @@ class IntervalIncrementalVideoRecorder():
 
     def stopRecording(self):
         self.threadingLock.acquire()
+        
+        if self.status != "RECORDING":
+            self.threadingLock.release()
+            return
+        
         self.logger.debug("  attempting : stopRecording              :: IntervalIncrementalVideoRecorder")
 
-        self.camera.stop_recording()
-        self.camera.stop_preview()
+        if not config.system['mock']:
+            self.camera.stop_recording()
+        
         self.status = "STANDBY"
 
         self.logger.log("  --- STDBY* [" + str(datetime.datetime.now()) \
@@ -77,9 +86,23 @@ class IntervalIncrementalVideoRecorder():
         self.threadingLock.release()
 
     def gracefullyShutdown(self):
+        self.threadingLock.acquire()
+        
+        self.logger.log("Shut down in progress...")
+        
         if not self.recordingStopper is None:
+            self.logger.debug("   stopping in-progress video recording")
             self.recordingStopper.cancel()
+            
+        # release lock since stopRecording will acquire it
+        self.threadingLock.release()
+        
         self.stopRecording()
+        
+        self.logger.log("     Files recorded " + str(len(self.recordingsFileNames)) + ": ")
+        for fileName in self.recordingsFileNames:
+            self.logger.log("     * " + fileName)
+        self.logger.log("     listed " + str(len(self.recordingsFileNames)) + " files.")
 
     def isRecording(self):
         return self.status == "RECORDING" \

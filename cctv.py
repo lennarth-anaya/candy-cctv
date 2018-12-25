@@ -8,6 +8,8 @@ from IntervalIncrementalVideoRecorder import IntervalIncrementalVideoRecorder
 from Splash import Splash
 from Logger import Logger
 
+import config
+
 logger = Logger()
 
 logger.debug(" Instantiating threading lock                                       :: MAIN")
@@ -20,7 +22,7 @@ videoRecorder = IntervalIncrementalVideoRecorder(threadingLock, logger)
 interruptor = Interruptor(logger, [videoRecorder])
 
 logger.log(" Binding video recorder to motion sensor                            :: MAIN")
-motionSensor = MotionSensor(4)
+motionSensor = MotionSensor(config.sensors['motion']['gpioPort'])
 motionSensor.when_motion = videoRecorder.startRecording
 
 # Capture Ctrl+C
