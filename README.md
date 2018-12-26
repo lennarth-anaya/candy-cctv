@@ -16,5 +16,5 @@ sudo python3 cctv.py
 - Automatic cleanup of old files
 - Live streaming
 - Manual relevancy files mark so they are garbage collected as soon as possible and not visible to relevant files
-- Possibly, avoid the huge amount of files recorded by accumulating more motion events, or perhaps keeping it and just analyzing the videos with image analisys to diacard them once recorded, which would be more interesting.
+- Possibly, avoid the huge amount of files recorded. Maybe not storing files smaller than 2.5 MB, as per the current observed behavior, perhaps no need to something fancier so far.
 
