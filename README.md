@@ -13,7 +13,7 @@ sudo python3 cctv.py
 # Prioritized TODO
 
 - Adding the capability to somehow easily start/stop recording remotely
-- Automatic cleanup of old files
+- Automatic cleanup of old files - DONE fsassistant
 - Live streaming
 - Manual relevancy files mark so they are garbage collected as soon as possible and not visible to relevant files
 - Possibly, avoid the huge amount of files recorded. Maybe not storing files smaller than 2.5 MB, as per the current observed behavior, perhaps no need to something fancier so far.
